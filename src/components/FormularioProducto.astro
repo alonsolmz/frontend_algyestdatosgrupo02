@@ -1,0 +1,147 @@
+---
+// FormularioProducto.astro
+---
+
+<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+  <div class="bg-slate-50 p-4 border-b border-slate-200">
+    <h3 class="text-lg font-semibold text-slate-800">Registrar Nuevo Artículo</h3>
+    <p class="text-xs text-slate-500">Ingrese las especificaciones del producto para actualizar el stock real.</p>
+  </div>
+  
+  <form id="form-producto" class="p-6 space-y-5">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Nombre del Producto</label>
+        <input type="text" id="nombre" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm" placeholder='Ej. Monitor Gamer 24"'/>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Categoría</label>
+        <input type="text" id="categoria" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm" placeholder="Ej. Periféricos" />
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Precio Unitario (S/.)</label>
+        <input type="number" id="precio" step="0.01" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm" placeholder="0.00" />
+      </div>
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Stock Inicial</label>
+        <input type="number" id="stockActual" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm" placeholder="0" />
+      </div>
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Stock Mínimo (Alerta)</label>
+        <input type="number" id="stockMinimo" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm" placeholder="5" />
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Unidad de Medida</label>
+        <select id="unidadMedida" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+          <option value="UNIDAD">Unidades (UND)</option>
+          <option value="CAJA">Cajas (CJ)</option>
+          <option value="METRO">Metros (M)</option>
+          <option value="KILOGRAMO">Kilogramos (KG)</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Ubicación en Almacén</label>
+        <select id="ubicacionId" required class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+          <option value="">Cargando ubicaciones de la base de datos...</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="pt-2">
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+        Guardar en Inventario
+      </button>
+    </div>
+  </form>
+
+  <div id="status-toast" class="mx-6 mb-6 p-3 rounded-lg text-sm text-center hidden font-medium"></div>
+</div>
+
+<script>
+  const form = document.getElementById('form-producto') as HTMLFormElement;
+  const toast = document.getElementById('status-toast');
+  const selectUbicacion = document.getElementById('ubicacionId') as HTMLSelectElement;
+
+  // Función para poblar dinámicamente el combo box de ubicaciones
+  async function cargarUbicaciones() {
+    try {
+      const response = await fetch('http://localhost:8080/api/ubicaciones');
+      if (response.ok) {
+        const ubicaciones = await response.json();
+        if (selectUbicacion) {
+          selectUbicacion.innerHTML = '<option value="">-- Seleccione una Ubicación --</option>';
+          ubicaciones.forEach((ubi: any) => {
+            const option = document.createElement('option');
+            option.value = ubi.id;
+            option.textContent = `${ubi.nombre} - ${ubi.descripcion}`;
+            selectUbicacion.appendChild(option);
+          });
+        }
+      } else {
+        if (selectUbicacion) selectUbicacion.innerHTML = '<option value="">Error al leer las ubicaciones</option>';
+      }
+    } catch (error) {
+      console.error('Error al cargar ubicaciones:', error);
+      if (selectUbicacion) selectUbicacion.innerHTML = '<option value="">Error al cargar ubicaciones</option>';
+    }
+  }
+
+  // Escuchador nativo para asegurar la carga inmediata en el cliente
+  document.addEventListener('DOMContentLoaded', () => {
+    cargarUbicaciones();
+  });
+
+  // Manejo del envío del formulario
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const productoData = {
+      nombre: (document.getElementById('nombre') as HTMLInputElement).value,
+      categoria: (document.getElementById('categoria') as HTMLInputElement).value,
+      precio: parseFloat((document.getElementById('precio') as HTMLInputElement).value),
+      stockActual: parseInt((document.getElementById('stockActual') as HTMLInputElement).value),
+      stockMinimo: parseInt((document.getElementById('stockMinimo') as HTMLInputElement).value),
+      unidadMedida: (document.getElementById('unidadMedida') as HTMLInputElement).value,
+      ubicacionId: parseInt((document.getElementById('ubicacionId') as HTMLSelectElement).value),
+      activo: true
+    };
+
+    try {
+      const response = await fetch('http://localhost:8080/api/productos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(productoData)
+      });
+
+      if (response.ok) {
+        showToast('Producto registrado exitosamente en el sistema.', 'bg-emerald-50 text-emerald-700 border border-emerald-200');
+        form.reset();
+        // Recargar la lista para dejarla limpia
+        cargarUbicaciones();
+        document.dispatchEvent(new CustomEvent('producto-creado'));
+      } else {
+        showToast('Error de validación. Revise la consola del servidor backend.', 'bg-rose-50 text-rose-700 border border-rose-200');
+      }
+    } catch (error) {
+      showToast('Error de red: No se pudo conectar con el servidor Spring Boot.', 'bg-amber-50 text-amber-700 border border-amber-200');
+    }
+  });
+
+  function showToast(msj: string, clases: string) {
+    if (toast) {
+      toast.textContent = msj;
+      toast.className = `mx-6 mb-6 p-3 rounded-lg text-sm text-center font-medium ${clases}`;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 5000);
+    }
+  }
+</script>
