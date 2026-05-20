@@ -1,5 +1,2 @@
 @import "tailwindcss";
 
-@source "../layouts/**/*.astro";
-@source "../components/**/*.astro";
-@source "../pages/**/*.astro";
